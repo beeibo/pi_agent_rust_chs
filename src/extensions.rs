@@ -16722,6 +16722,21 @@ struct JsToolExecution<'a> {
     invocation: Arc<JsToolInvocation>,
 }
 
+/// 以展开参数调用 JS 函数。
+///
+/// `rquickjs` 的 `IntoArgs` 只实现到 7 元组，而 `__pi_execute_tool` 的导出包装
+/// 需要桥接密钥加 8 个业务参数；这里改用 `Reflect.apply` 展开参数数组，
+/// 保持 JS 侧签名不变。
+fn call_js_spread<'js>(
+    ctx: &rquickjs::Ctx<'js>,
+    function: &rquickjs::Function<'js>,
+    args: rquickjs::Array<'js>,
+) -> rquickjs::Result<rquickjs::Value<'js>> {
+    let reflect: rquickjs::Object<'js> = ctx.globals().get("Reflect")?;
+    let apply: rquickjs::Function<'js> = reflect.get("apply")?;
+    apply.call((function.clone(), rquickjs::Undefined, args))
+}
+
 #[allow(clippy::future_not_send, clippy::too_many_lines)]
 async fn execute_extension_tool_sharded(
     shards: &mut JsRuntimeShardSet,
@@ -16812,17 +16827,17 @@ async fn execute_extension_tool_sharded(
             } else {
                 None
             };
-            let promise: rquickjs::Value<'_> = exec_fn.call((
-                bridge_secret.as_str(),
-                tool_name,
-                tool_call_id,
-                input_js,
-                ctx_js,
-                invocation_id.as_str(),
-                on_update,
-                registration.map(|registration| registration.revision),
-                admitted_parameters,
-            ))?;
+            let call_args = rquickjs::Array::new(ctx.clone())?;
+            call_args.set(0, bridge_secret.as_str())?;
+            call_args.set(1, tool_name)?;
+            call_args.set(2, tool_call_id)?;
+            call_args.set(3, input_js)?;
+            call_args.set(4, ctx_js)?;
+            call_args.set(5, invocation_id.as_str())?;
+            call_args.set(6, on_update)?;
+            call_args.set(7, registration.map(|registration| registration.revision))?;
+            call_args.set(8, admitted_parameters)?;
+            let promise: rquickjs::Value<'_> = call_js_spread(&ctx, &exec_fn, call_args)?;
             let _task: String =
                 task_start.call((bridge_secret.as_str(), task_id.as_str(), promise))?;
             Ok(())

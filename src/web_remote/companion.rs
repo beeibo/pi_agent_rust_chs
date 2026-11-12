@@ -386,7 +386,7 @@ impl CompanionHandle {
     /// Refresh only at a driver boundary after the operation has completed.
     /// The projection omits incomplete deltas and never exports FTUI drafts,
     /// login text, permission cards, tool arguments, or binary attachments.
-    pub async fn refresh(&self, handle: &crate::sdk::AgentSessionHandle) -> crate::Result<()> {
+    pub async fn refresh(&self, handle: &crate::sdk::AgentSessionHandle) -> crate::PiResult<()> {
         let identity = handle
             .with_session(|session| {
                 let name = session.get_name_ref().unwrap_or("Pi session");
