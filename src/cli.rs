@@ -1,7 +1,7 @@
 //! CLI argument parsing using Clap.
 
 use clap::error::ErrorKind;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -113,6 +113,7 @@ fn known_long_option(name: &str) -> Option<LongOptionSpec> {
         | "hide-cwd-in-prompt" => (false, false),
         "provider"
         | "model"
+        | "lang"
         | "api-key"
         | "models"
         | "smol"
@@ -295,16 +296,46 @@ fn preprocess_extension_flags(raw_args: &[String]) -> (Vec<String>, Vec<Extensio
     (filtered, extracted)
 }
 
+/// 从命令行参数中提取 `--lang` 的取值，供帮助文本在 clap 解析前选择语言。
+fn lang_argument(raw_args: &[String]) -> Option<String> {
+    let mut iter = raw_args.iter().skip(1);
+    while let Some(arg) = iter.next() {
+        if let Some(value) = arg.strip_prefix("--lang=") {
+            return Some(value.to_string());
+        }
+        if arg == "--lang" {
+            return iter.next().cloned();
+        }
+    }
+    None
+}
+
+/// 用本地化后的命令树解析参数。
+///
+/// 结构仍来自 derive；这里仅按当前语言改写帮助文本，然后用 clap 官方支持的
+/// `try_get_matches_from` + `from_arg_matches` 路径完成解析。
+fn parse_cli<I, T>(args: I) -> Result<Cli, clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
+    let command = crate::i18n::localize_command(<Cli as CommandFactory>::command());
+    let matches = command.try_get_matches_from(args)?;
+    <Cli as FromArgMatches>::from_arg_matches(&matches)
+}
+
 pub fn parse_with_extension_flags(raw_args: Vec<String>) -> Result<ParsedCli, clap::Error> {
+    crate::i18n::init(lang_argument(&raw_args).as_deref(), None);
+
     if raw_args.is_empty() {
-        let cli = Cli::try_parse_from(["pi"])?;
+        let cli = parse_cli(["pi"])?;
         return Ok(ParsedCli {
             cli,
             extension_flags: Vec::new(),
         });
     }
 
-    match Cli::try_parse_from(raw_args.clone()) {
+    match parse_cli(raw_args.clone()) {
         Ok(_) => {
             // We do NOT return early here because `Cli` has trailing varargs for `message`.
             // If the user provided `pi hello --unknown flag`, clap might happily parse
@@ -322,14 +353,14 @@ pub fn parse_with_extension_flags(raw_args: Vec<String>) -> Result<ParsedCli, cl
 
     let (filtered_args, extension_flags) = preprocess_extension_flags(&raw_args);
     if extension_flags.is_empty() {
-        let cli = Cli::try_parse_from(raw_args)?;
+        let cli = parse_cli(raw_args)?;
         return Ok(ParsedCli {
             cli,
             extension_flags: Vec::new(),
         });
     }
 
-    let cli = Cli::try_parse_from(filtered_args)?;
+    let cli = parse_cli(filtered_args)?;
     Ok(ParsedCli {
         cli,
         extension_flags,
@@ -354,6 +385,10 @@ pub struct Cli {
     /// Print version information
     #[arg(short = 'v', long)]
     pub version: bool,
+
+    /// Interface language: zh-CN (default) or en
+    #[arg(long, value_name = "TAG")]
+    pub lang: Option<String>,
 
     // === Model Configuration ===
     /// LLM provider (e.g., anthropic, openai, google).

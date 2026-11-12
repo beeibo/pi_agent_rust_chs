@@ -42,6 +42,9 @@ pub const USER_DIAGNOSTIC_TARGET: &str = "pi::settings";
 pub struct Config {
     // Appearance
     pub theme: Option<String>,
+    /// 界面语言标签（例如 `zh-CN`、`en`）。留空时按 `--lang` / `PI_LANG` / 系统区域推断。
+    #[serde(alias = "locale")]
+    pub language: Option<String>,
     #[serde(alias = "hideThinkingBlock")]
     pub hide_thinking_block: Option<bool>,
     #[serde(alias = "showHardwareCursor")]
@@ -1116,6 +1119,7 @@ impl Config {
         Self {
             // Appearance
             theme: other.theme.or(base.theme),
+            language: other.language.or(base.language),
             hide_thinking_block: other.hide_thinking_block.or(base.hide_thinking_block),
             show_hardware_cursor: other.show_hardware_cursor.or(base.show_hardware_cursor),
             disable_mouse_capture: other.disable_mouse_capture.or(base.disable_mouse_capture),

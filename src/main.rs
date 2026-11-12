@@ -403,7 +403,18 @@ fn parse_cli_args(raw_args: Vec<String>) -> Result<Option<(cli::Cli, Vec<cli::Ex
                 ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
             ) {
                 // `pi --help | head` closes the pipe on purpose (GH #264).
-                err.print().inspect_err(exit_if_stdout_closed)?;
+                // 帮助文本先经本地化处理：clap 的分节标题（Usage/Commands/…）
+                // 是硬编码英文，无法通过命令树改写。
+                if pi::i18n::current() == pi::i18n::Locale::ZhCn {
+                    let rendered = pi::i18n::localize_clap_output(&err.to_string());
+                    let stdout = io::stdout();
+                    let mut out = stdout.lock();
+                    out.write_all(rendered.as_bytes())
+                        .and_then(|()| out.flush())
+                        .inspect_err(exit_if_stdout_closed)?;
+                } else {
+                    err.print().inspect_err(exit_if_stdout_closed)?;
+                }
                 return Ok(None);
             }
             Err(anyhow::Error::new(err))
@@ -2106,6 +2117,8 @@ async fn run(
         &cwd,
         workspace_trusted,
     )?;
+    // 界面语言：显式 --lang 优先，其次设置项 language，最后回落到默认中文。
+    pi::i18n::init(cli.lang.as_deref(), config.language.as_deref());
     if let Some(policy) = &cli.subagent_fallback_policy {
         policy.apply_to_config(&mut config);
     }

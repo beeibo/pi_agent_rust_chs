@@ -394,6 +394,14 @@ impl SlashCommand {
     }
 
     /// Get help text for all commands.
+    pub const fn help_text_for(locale: crate::i18n::Locale) -> &'static str {
+        match locale {
+            crate::i18n::Locale::En => Self::help_text(),
+            crate::i18n::Locale::ZhCn => ZH_HELP_TEXT,
+        }
+    }
+
+    /// Get help text for all commands.
     pub const fn help_text() -> &'static str {
         r"Available commands:
   /help, /h, /?      - Show this help message
@@ -457,6 +465,68 @@ impl SlashCommand {
     • Use /skill:name or /template to expand resources"
     }
 }
+
+/// 简体中文帮助文本（默认语言）。命令名与参数保持英文标识符。
+const ZH_HELP_TEXT: &str = r"可用命令：
+  /help, /h, /?      - 显示本帮助
+  /login [provider]  - 登录 / 配置凭据；不带参数时显示状态表
+  /logout [provider] - 删除已保存的凭据
+  /clear, /cls       - 清空对话历史
+  /model, /m [id|provider/id] - 打开模型选择器或直接切换
+  /thinking, /t [level] - 设置思考等级（off/minimal/low/medium/high/xhigh/max）
+  /fast [on|off|status|default|flex|scale|priority|ultrafast] - 选择服务档位
+  /scoped-models [patterns|clear] - 查看或设置可循环切换的模型范围
+  /history, /hist    - 显示输入历史
+  /export [path]     - 将会话导出为 HTML
+  /session, /info    - 显示会话信息（路径、token、花费）
+  /settings          - 打开设置选择器
+  /theme [name]      - 列出或切换主题（dark/light/auto/custom）
+  /resume, /r        - 选择并恢复历史会话
+  /new               - 开始新会话
+  /copy, /cp         - 复制上一条助手消息到剪贴板
+  /name <name>       - 设置会话显示名称
+  /hotkeys, /keys    - 显示键盘快捷键
+  /changelog         - 显示更新日志
+  /tree              - 显示会话分支树概要
+  /fork [id|index]   - 从某条用户消息分叉（默认当前路径上的最后一条）
+  /compact [shake|aggressive] [notes] - 压缩较早的上下文（shake：不调用模型的即时工具结果裁剪）
+  /reload            - 从磁盘重新加载技能与提示模板
+  /template <name> [args] - 按名称展开提示模板
+  /share             - 将当前分支上传为未公开列出的 gist（非私密；请先检查敏感上下文）
+  /mcp               - 管理 MCP 服务器：list、add、remove、test、trust、reauth、unauth
+  /plan [approve|reject|off|status] - 进入计划模式 / 复核已提交的计划
+  /goal              - 复核目标、管理预算并执行有界目标工作
+  /prewalk [into]    - 预埋模型交接；restart [from] [into]、status、off
+  /approval [always-ask|write|yolo|status] - 设置或查看工具审批模式
+  /handoff [focus]   - 将上下文压缩为当前会话内的续接简报
+  /handoff --report [to] [path] - 生成或投递本地会话报告
+  /rules [list|remove|toggle] - 管理流规则（TTSR）
+  /add-dir <dir>     - 授予额外 workspace 根目录访问权
+  /remove-dir <dir>  - 立即收回额外 workspace 根目录
+  /crash [show|delete] - 查看或清理脱敏后的崩溃包
+  /btw <question>    - 用 smol 角色问一个不落盘的旁路问题
+  /tan <work>        - 在后台任务子进程中运行旁支工作
+  /omfg <complaint>  - 记录用户不满并起草候选流规则
+  /commit [dry-run|all|bead] - 按依赖顺序将改动拆成原子提交
+  /review [target]   - 对改动执行分级代码复核并给出结论卡
+  /advisor [status|pause|resume] - 管理轮次复核模型
+  /checkpoint, /cp2 [name] [note] - 在当前分支标记恢复点
+  /rewind [name]     - 将检查点之后的全部内容折叠为摘要
+  /fresh             - 重置提供方流式状态；对话记录不变
+  /retry             - 将上一条用户消息作为兄弟分支重发
+  /undo [n] [force]  - 回滚最近 n 次智能体文件编辑（force：跳过外部修改检查）
+  /redo [n] [force]  - 重新应用已撤销的文件编辑
+  /usage [refresh]   - 显示提供方用量与配额
+  /exit, /quit, /q   - 退出 Pi
+
+  提示：
+    • 用 ↑/↓ 浏览输入历史
+    • 用 Ctrl+L 打开模型选择器
+    • 用 Ctrl+P 在限定模型间循环
+    • 用 Shift+Enter（Windows 上为 Ctrl+Enter）插入换行
+    • 用 PageUp/PageDown 滚动对话历史
+    • 用 Escape 取消当前输入
+    • 用 /skill:name 或 /template 展开资源";
 
 pub(super) fn parse_extension_command(input: &str) -> Option<(String, &str)> {
     let input = input.trim();
@@ -2198,7 +2268,7 @@ impl PiApp {
             SlashCommand::Help => {
                 self.messages.push(ConversationMessage {
                     role: MessageRole::System,
-                    content: SlashCommand::help_text().to_string(),
+                    content: SlashCommand::help_text_for(crate::i18n::current()).to_string(),
                     thinking: None,
                     collapsed: false,
                 });

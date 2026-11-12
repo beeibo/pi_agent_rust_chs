@@ -223,6 +223,7 @@ pub mod http;
 pub mod http_shim;
 #[doc(hidden)]
 pub mod hub;
+pub mod i18n;
 #[cfg(feature = "tui")]
 #[doc(hidden)]
 pub mod interactive;

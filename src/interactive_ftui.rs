@@ -212,8 +212,9 @@ impl WebRemoteUi {
             pairing_url,
             panel_open: true,
             notice: None,
-            draft: PiFtuiModel::new_input_editor()
-                .with_placeholder("Browser message · Enter sends · host input retakes control"),
+            draft: PiFtuiModel::new_input_editor().with_placeholder(crate::i18n::tr(
+                "Browser message · Enter sends · host input retakes control",
+            )),
             draft_owner: None,
             privacy_ready,
             displayed_request: std::cell::RefCell::new(None),
@@ -2995,7 +2996,9 @@ impl PiFtuiModel {
 
     fn new_input_editor() -> TextArea {
         TextArea::new()
-            .with_placeholder("Type a message (Enter to send, Alt+Enter for newline)")
+            .with_placeholder(crate::i18n::tr(
+                "Type a message (Enter to send, Alt+Enter for newline)",
+            ))
             .with_focus(true)
             .with_soft_wrap(true)
     }
@@ -5898,8 +5901,8 @@ impl PiFtuiModel {
         if canon == "/help" || canon == "/h" || canon == "/?" {
             self.push_entry(
                 EntryRole::System,
-                String::from(
-                    "pi commands: /model or /switch [model[:level]], /queue <message>, /resume, /new, \
+                String::from(format!(
+                    "{} /model or /switch [model[:level]], /queue <message>, /resume, /new, \
                      /session, /name <name>, /plan, /goal status, /compact [focus], /tree, /undo [n], /redo [n], \
                      /export [path], /copy [code|cmd|link], /dump, /pin, /delete, /share, /tan <task>, /usage, /mcp, \
                      /add-dir <dir>, /remove-dir <dir>, /crash [list|show|delete], \
@@ -5917,7 +5920,8 @@ impl PiFtuiModel {
                      /restart, /exit, !<cmd> (runs + sends output to the agent), !!<cmd> \
                      (display-only)\n\
                      Goal guide: https://github.com/Dicklesworthstone/pi_agent_rust/blob/main/docs/goal-mode.md",
-                ),
+                    crate::i18n::tr("pi commands:"),
+                )),
             );
             return true;
         }
@@ -8894,7 +8898,7 @@ impl PiFtuiModel {
         Paragraph::new(Text::from_lines(lines)).render(regions.body, frame);
         let footer_style = ftui::Style::new().dim().fg(self.palette.muted);
         Paragraph::new(Text::from_lines([ftui::text::Line::styled(
-            PICKER_HINT,
+            crate::i18n::tr(PICKER_HINT),
             footer_style,
         )]))
         .render(regions.footer, frame);
@@ -8919,11 +8923,11 @@ impl PiFtuiModel {
         // Header: identity + agent state.
         let pending_browser = self.browser_inbox_len();
         let header = if pending_browser == 0 {
-            format!("pi · {}", self.state.label())
+            format!("pi · {}", crate::i18n::tr(self.state.label()))
         } else {
             format!(
                 "pi · {} · browser inbox {pending_browser} (F8 review)",
-                self.state.label(),
+                crate::i18n::tr(self.state.label()),
             )
         };
         let header_style = ftui::Style::new().bold().fg(self.palette.accent);
@@ -9013,12 +9017,12 @@ impl PiFtuiModel {
                 self.current_tool.as_ref().map_or_else(
                     || {
                         if self.streaming.is_empty() && !self.thinking.is_empty() {
-                            String::from("thinking ...")
+                            String::from(crate::i18n::tr("thinking ..."))
                         } else {
-                            String::from("responding ...")
+                            String::from(crate::i18n::tr("responding ..."))
                         }
                     },
-                    |tool| format!("running {tool} ..."),
+                    |tool| crate::i18n::t_format("running {tool} ...", &[("tool", tool.as_str())]),
                 )
             });
             format!("{spin} {activity}")
@@ -9032,9 +9036,9 @@ impl PiFtuiModel {
                 .collect::<Vec<_>>()
                 .join(" · ")
         } else {
-            self.todo_summary
-                .as_ref()
-                .map_or_else(String::new, |todo| format!("todo {todo}"))
+            self.todo_summary.as_ref().map_or_else(String::new, |todo| {
+                crate::i18n::t_format("todo {todo}", &[("todo", todo.as_str())])
+            })
         };
         // The powerline (OMP-ADOPT bd-cv653.9.4) fills the rest of the row:
         // model, thinking, mode, path, VCS, context, cost.
@@ -10532,9 +10536,12 @@ fn unrouted_command_message(name: &str, extensions_enabled: bool) -> String {
         );
     }
     if extensions_enabled {
-        format!("Unknown command: /{name} (try /help)")
+        crate::i18n::t_format("Unknown command: /{name} (try /help)", &[("name", name)])
     } else {
-        format!("Unknown command: /{name} (extensions disabled; try /help)")
+        crate::i18n::t_format(
+            "Unknown command: /{name} (extensions disabled; try /help)",
+            &[("name", name)],
+        )
     }
 }
 

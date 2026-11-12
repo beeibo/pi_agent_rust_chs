@@ -291,7 +291,7 @@ impl AutocompleteProvider {
                         kind: AutocompleteItemKind::SlashCommand,
                         label: label.clone(),
                         insert: label,
-                        description: Some(cmd.description.to_string()),
+                        description: Some(crate::i18n::tr(cmd.description).to_string()),
                     },
                 });
             }

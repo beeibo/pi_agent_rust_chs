@@ -552,24 +552,37 @@ fn api_hints(msg: &str) -> ErrorHint {
 ///
 /// Returns a formatted string suitable for terminal output.
 pub fn format_error_with_hints(error: &Error) -> String {
+    format_error_with_hints_in(crate::i18n::current(), error)
+}
+
+/// [`format_error_with_hints`] 的显式语言版本。
+///
+/// 摘要与建议文案在渲染时查表翻译；错误正文仍由 [`Error`] 的 `Display` 输出。
+pub fn format_error_with_hints_in(locale: crate::i18n::Locale, error: &Error) -> String {
     let hint = hints_for_error(error);
     let mut output = String::new();
 
     // Error message
-    let _ = writeln!(&mut output, "Error: {error}");
+    let _ = writeln!(
+        &mut output,
+        "{} {error}",
+        crate::i18n::tr_in(locale, "Error:")
+    );
 
     // Summary if different from error message
     if !error.to_string().contains(hint.summary) {
         output.push('\n');
-        output.push_str(hint.summary);
+        output.push_str(crate::i18n::tr_in(locale, hint.summary));
         output.push('\n');
     }
 
     // Hints
     if !hint.hints.is_empty() {
-        output.push_str("\nSuggestions:\n");
+        output.push('\n');
+        output.push_str(crate::i18n::tr_in(locale, "Suggestions:"));
+        output.push('\n');
         for &h in hint.hints {
-            let _ = writeln!(&mut output, "  • {h}");
+            let _ = writeln!(&mut output, "  • {}", crate::i18n::tr_in(locale, h));
         }
     }
 
